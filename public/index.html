@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Saved WiFi Networks</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --card: #171a21;
+    --accent: #4f8cff;
+    --text: #e6e9ef;
+    --muted: #8b93a3;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    padding: 40px 16px;
+  }
+  .container { width: 100%; max-width: 480px; }
+  h1 { font-size: 1.4rem; margin-bottom: 4px; }
+  p.sub { color: var(--muted); margin-top: 0; margin-bottom: 24px; font-size: 0.9rem; }
+  button.reload {
+    background: var(--card);
+    border: 1px solid #2a2f3a;
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-bottom: 16px;
+  }
+  button.reload:hover { border-color: var(--accent); }
+  ul { list-style: none; padding: 0; margin: 0; }
+  li {
+    background: var(--card);
+    border: 1px solid #2a2f3a;
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  li .name { font-weight: 500; }
+  li button {
+    background: var(--accent);
+    border: none;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+  li button:hover { opacity: 0.9; }
+  .pw-row { margin-top: 8px; font-size: 0.85rem; color: var(--muted); word-break: break-all; }
+  .error { color: #ff6b6b; font-size: 0.9rem; }
+  .empty { color: var(--muted); text-align: center; padding: 20px 0; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Saved WiFi Networks</h1>
+  <p class="sub">Local machine only &middot; reveals passwords stored on this device</p>
+  <button class="reload" onclick="loadProfiles()">Reload list</button>
+  <ul id="list"></ul>
+</div>
+
+<script>
+async function loadProfiles() {
+  const list = document.getElementById("list");
+  list.innerHTML = "<li class='empty'>Loading...</li>";
+  try {
+    const res = await fetch("/api/profiles");
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    if (!data.names.length) {
+      list.innerHTML = "<li class='empty'>No saved profiles found.</li>";
+      return;
+    }
+    list.innerHTML = "";
+    data.names.forEach((name) => {
+      const li = document.createElement("li");
+      li.style.flexDirection = "column";
+      li.style.alignItems = "stretch";
+
+      const row = document.createElement("div");
+      row.style.display = "flex";
+      row.style.justifyContent = "space-between";
+      row.style.alignItems = "center";
+
+      const label = document.createElement("span");
+      label.className = "name";
+      label.textContent = name;
+
+      const btn = document.createElement("button");
+      btn.textContent = "Show password";
+      btn.onclick = () => revealPassword(name, li);
+
+      row.appendChild(label);
+      row.appendChild(btn);
+      li.appendChild(row);
+      list.appendChild(li);
+    });
+  } catch (e) {
+    list.innerHTML = `<li class="error">${e.message}</li>`;
+  }
+}
+
+async function revealPassword(name, li) {
+  let pwRow = li.querySelector(".pw-row");
+  if (!pwRow) {
+    pwRow = document.createElement("div");
+    pwRow.className = "pw-row";
+    li.appendChild(pwRow);
+  }
+  pwRow.textContent = "Loading...";
+  try {
+    const res = await fetch(`/api/password/${encodeURIComponent(name)}`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    pwRow.textContent = `Password: ${data.password}`;
+  } catch (e) {
+    pwRow.textContent = "Error: " + e.message;
+    pwRow.classList.add("error");
+  }
+}
+
+loadProfiles();
+</script>
+</body>
+</html>

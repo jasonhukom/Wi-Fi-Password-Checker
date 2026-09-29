@@ -1,0 +1,12 @@
+{
+  "name": "wifi-checker-ui",
+  "version": "1.0.0",
+  "description": "Local UI for viewing saved WiFi profiles and passwords on Windows",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
