@@ -3,135 +3,234 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Saved WiFi Networks</title>
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-<link rel="manifest" href="/site.webmanifest">
+<title>wifi scan — saved profiles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0f1115;
-    --card: #171a21;
-    --accent: #4f8cff;
-    --text: #e6e9ef;
-    --muted: #8b93a3;
+    --bg: #0a0d12;
+    --panel: #0f1319;
+    --line: #1e242e;
+    --ink: #d7dde5;
+    --dim: #5c6672;
+    --signal: #5eead4;
+    --signal-dim: #2a4a45;
   }
   * { box-sizing: border-box; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
   body {
     margin: 0;
-    font-family: -apple-system, Segoe UI, Roboto, sans-serif;
     background: var(--bg);
-    color: var(--text);
-    display: flex;
-    justify-content: center;
-    padding: 40px 16px;
+    color: var(--ink);
+    font-family: "Space Grotesk", sans-serif;
+    padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
   }
-  .container { width: 100%; max-width: 480px; }
-  h1 { font-size: 1.4rem; margin-bottom: 4px; }
-  p.sub { color: var(--muted); margin-top: 0; margin-bottom: 24px; font-size: 0.9rem; }
-  button.reload {
-    background: var(--card);
-    border: 1px solid #2a2f3a;
-    color: var(--text);
-    padding: 8px 14px;
-    border-radius: 8px;
-    cursor: pointer;
-    margin-bottom: 16px;
+  .wrap {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 48px 20px 80px;
   }
-  button.reload:hover { border-color: var(--accent); }
-  ul { list-style: none; padding: 0; margin: 0; }
-  li {
-    background: var(--card);
-    border: 1px solid #2a2f3a;
-    border-radius: 10px;
-    padding: 14px 16px;
-    margin-bottom: 10px;
+
+  header { display: flex; align-items: flex-end; gap: 16px; margin-bottom: 6px; }
+  .mark { flex-shrink: 0; }
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .meta {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.78rem;
+    color: var(--dim);
+    margin: 10px 0 32px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--line);
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
-  li .name { font-weight: 500; }
-  li button {
-    background: var(--accent);
-    border: none;
-    color: white;
+  .rescan {
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--ink);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.76rem;
     padding: 6px 12px;
-    border-radius: 6px;
+    border-radius: 4px;
     cursor: pointer;
-    font-size: 0.85rem;
   }
-  li button:hover { opacity: 0.9; }
-  .pw-row { margin-top: 8px; font-size: 0.85rem; color: var(--muted); word-break: break-all; }
-  .error { color: #ff6b6b; font-size: 0.9rem; }
-  .empty { color: var(--muted); text-align: center; padding: 20px 0; }
+  .rescan:hover { border-color: var(--signal); color: var(--signal); }
+  .rescan:focus-visible, button:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+
+  .row { border-bottom: 1px solid var(--line); }
+  .row-head {
+    width: 100%;
+    background: none;
+    border: none;
+    color: var(--ink);
+    text-align: left;
+    padding: 16px 4px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.98rem;
+  }
+  .row-head:hover .ssid { color: var(--signal); }
+  .bars { display: flex; align-items: flex-end; gap: 2px; height: 14px; flex-shrink: 0; }
+  .bars i { width: 3px; background: var(--signal-dim); display: block; border-radius: 1px; }
+  .bars i:nth-child(1) { height: 30%; }
+  .bars i:nth-child(2) { height: 55%; }
+  .bars i:nth-child(3) { height: 78%; }
+  .bars i:nth-child(4) { height: 100%; }
+  .row.open .bars i { background: var(--signal); }
+  .ssid { flex: 1; }
+  .chev {
+    font-family: "IBM Plex Mono", monospace;
+    color: var(--dim);
+    font-size: 0.85rem;
+    transition: transform 0.15s ease;
+  }
+  .row.open .chev { transform: rotate(90deg); color: var(--signal); }
+
+  .detail { display: none; padding: 0 4px 20px 32px; }
+  .row.open .detail { display: block; }
+  .key-line {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.85rem;
+    color: var(--ink);
+    margin-bottom: 10px;
+  }
+  .key-line .label { color: var(--dim); margin-right: 8px; }
+  .key-line .val { color: var(--signal); }
+  .dump {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.74rem;
+    line-height: 1.6;
+    color: var(--dim);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 260px;
+    overflow-y: auto;
+  }
+  .loading { color: var(--dim); font-family: "IBM Plex Mono", monospace; font-size: 0.8rem; }
+  .err { color: #ef7a7a; font-family: "IBM Plex Mono", monospace; font-size: 0.8rem; }
+  .empty {
+    font-family: "IBM Plex Mono", monospace;
+    color: var(--dim);
+    font-size: 0.85rem;
+    padding: 40px 4px;
+    text-align: center;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .chev { transition: none; }
+  }
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>Saved WiFi Networks</h1>
-  <p class="sub">Local machine only &middot; reveals passwords stored on this device</p>
-  <button class="reload" onclick="loadProfiles()">Reload list</button>
-  <ul id="list"></ul>
+<div class="wrap">
+  <header>
+    <svg class="mark" width="28" height="28" viewBox="0 0 24 24" fill="none">
+      <path d="M2 8.5C7 3.5 17 3.5 22 8.5" stroke="#5eead4" stroke-width="1.6" stroke-linecap="round" opacity="0.3"/>
+      <path d="M5.5 12C9 8.7 15 8.7 18.5 12" stroke="#5eead4" stroke-width="1.6" stroke-linecap="round" opacity="0.6"/>
+      <path d="M9 15.5C10.8 13.8 13.2 13.8 15 15.5" stroke="#5eead4" stroke-width="1.6" stroke-linecap="round"/>
+      <circle cx="12" cy="19" r="1.4" fill="#5eead4"/>
+    </svg>
+    <h1>Saved network profiles</h1>
+  </header>
+  <div class="meta">
+    <span id="count">scanning…</span>
+    <button class="rescan" onclick="loadProfiles()">rescan</button>
+  </div>
+
+  <div id="list"></div>
 </div>
 
 <script>
 async function loadProfiles() {
   const list = document.getElementById("list");
-  list.innerHTML = "<li class='empty'>Loading...</li>";
+  const count = document.getElementById("count");
+  count.textContent = "scanning…";
+  list.innerHTML = "";
   try {
     const res = await fetch("/api/profiles");
     const data = await res.json();
     if (data.error) throw new Error(data.error);
+
     if (!data.names.length) {
-      list.innerHTML = "<li class='empty'>No saved profiles found.</li>";
+      count.textContent = "0 profiles found";
+      list.innerHTML = '<div class="empty">No saved WiFi profiles on this machine.</div>';
       return;
     }
-    list.innerHTML = "";
+
+    count.textContent = `${data.names.length} profile${data.names.length === 1 ? "" : "s"} found`;
+
     data.names.forEach((name) => {
-      const li = document.createElement("li");
-      li.style.flexDirection = "column";
-      li.style.alignItems = "stretch";
-
       const row = document.createElement("div");
-      row.style.display = "flex";
-      row.style.justifyContent = "space-between";
-      row.style.alignItems = "center";
+      row.className = "row";
 
-      const label = document.createElement("span");
-      label.className = "name";
-      label.textContent = name;
+      row.innerHTML = `
+        <button class="row-head" aria-expanded="false">
+          <span class="bars"><i></i><i></i><i></i><i></i></span>
+          <span class="ssid">${escapeHtml(name)}</span>
+          <span class="chev">▸</span>
+        </button>
+        <div class="detail"></div>
+      `;
 
-      const btn = document.createElement("button");
-      btn.textContent = "Show password";
-      btn.onclick = () => revealPassword(name, li);
-
-      row.appendChild(label);
-      row.appendChild(btn);
-      li.appendChild(row);
-      list.appendChild(li);
+      const head = row.querySelector(".row-head");
+      head.addEventListener("click", () => toggleRow(row, name));
+      list.appendChild(row);
     });
   } catch (e) {
-    list.innerHTML = `<li class="error">${e.message}</li>`;
+    count.textContent = "scan failed";
+    list.innerHTML = `<div class="err">${escapeHtml(e.message)}</div>`;
   }
 }
 
-async function revealPassword(name, li) {
-  let pwRow = li.querySelector(".pw-row");
-  if (!pwRow) {
-    pwRow = document.createElement("div");
-    pwRow.className = "pw-row";
-    li.appendChild(pwRow);
+async function toggleRow(row, name) {
+  const isOpen = row.classList.contains("open");
+  const detail = row.querySelector(".detail");
+  const head = row.querySelector(".row-head");
+
+  if (isOpen) {
+    row.classList.remove("open");
+    head.setAttribute("aria-expanded", "false");
+    return;
   }
-  pwRow.textContent = "Loading...";
+
+  row.classList.add("open");
+  head.setAttribute("aria-expanded", "true");
+
+  if (detail.dataset.loaded) return;
+
+  detail.innerHTML = '<div class="loading">reading profile…</div>';
   try {
     const res = await fetch(`/api/password/${encodeURIComponent(name)}`);
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-    pwRow.textContent = `Password: ${data.password}`;
+
+    detail.innerHTML = `
+      <div class="key-line"><span class="label">key</span><span class="val">${escapeHtml(data.password)}</span></div>
+      <div class="dump">${escapeHtml(data.raw)}</div>
+    `;
+    detail.dataset.loaded = "1";
   } catch (e) {
-    pwRow.textContent = "Error: " + e.message;
-    pwRow.classList.add("error");
+    detail.innerHTML = `<div class="err">${escapeHtml(e.message)}</div>`;
   }
+}
+
+function escapeHtml(str) {
+  const d = document.createElement("div");
+  d.textContent = str ?? "";
+  return d.innerHTML;
 }
 
 loadProfiles();
