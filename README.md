@@ -17,7 +17,7 @@ python3 -m venv env
 source env/bin/activate
 ```
 
-### npm start
+### Start Web
 ```bash
 npm install
 npm start
